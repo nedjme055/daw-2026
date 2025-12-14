@@ -16,8 +16,6 @@ const HomePage = () => {
       <Hero />
       <Features />
       <Footer />
-      {/* Footer */}
-      
     </div>
   );
 };
