@@ -49,7 +49,7 @@ export default function Features() {
               </div>
               <h3 className="text-xl font-semibold text-white mb-3">Rapports & Statistiques</h3>
               <p className="text-slate-400 leading-relaxed">
-                Génération automatique d'attestations, statistiques détaillées et rapports de participation en temps réel.
+                Génération automatique d&apos;attestations, statistiques détaillées et rapports de participation en temps réel.
               </p>
             </div>
           </div>

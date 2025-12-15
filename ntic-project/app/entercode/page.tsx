@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import React, { useRef, useState, useEffect } from "react";
 
@@ -8,7 +8,10 @@ export default function EnterCode() {
   const [message, setMessage] = useState<string>("");
   const [isError, setIsError] = useState<boolean>(false);
 
-  const handleInput = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInput = (
+    index: number,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const value = e.target.value.replace(/\D/g, ""); // keep digits only
     const updated = [...code];
     updated[index] = value.slice(-1); // only last char
@@ -19,7 +22,10 @@ export default function EnterCode() {
     }
   };
 
-  const handleKeydown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeydown = (
+    index: number,
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
     const key = e.key;
     if (key === "Backspace" && code[index] === "" && index > 0) {
       inputsRef.current[index - 1]?.focus();
@@ -122,18 +128,25 @@ export default function EnterCode() {
 
           <p className="text-center text-sm text-white/70">
             Remember your password?{" "}
-            <a href="/" className="text-blue-300 hover:underline font-medium">
-               Back to Login
-             </a>
-           </p>
-         </form>
+            <a
+              href="/login"
+              className="text-blue-300 hover:underline font-medium"
+            >
+              Back to Login
+            </a>
+          </p>
+        </form>
 
-         {message && (
-           <p className={`text-center text-sm font-medium ${isError ? "text-red-300" : "text-green-300"}`}>
-             {message}
-           </p>
-         )}
-       </div>
-     </div>
-   );
- }
+        {message && (
+          <p
+            className={`text-center text-sm font-medium ${
+              isError ? "text-red-300" : "text-green-300"
+            }`}
+          >
+            {message}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}

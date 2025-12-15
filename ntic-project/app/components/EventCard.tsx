@@ -39,7 +39,7 @@ const EventCard: React.FC<EventCardProps> = ({
       <div className={`relative h-48 bg-gradient-to-br ${gradient} flex items-center justify-center overflow-hidden`}>
         {/* Animated Background Pattern */}
         <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,.1)_50%,transparent_75%,transparent_100%)] bg-[length:250%_250%]"></div>
+          <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,.1)_50%,transparent_75%,transparent_100%)] bg-size[length:250%_250%]"></div>
         </div>
         
         {/* Category Badge */}
@@ -67,7 +67,6 @@ const EventCard: React.FC<EventCardProps> = ({
       <div className="p-6 space-y-4">
         {/* Date */}
         <div className="flex items-center gap-2 text-blue-400 text-sm font-medium">
-          <img src="assets/Asset 1.png" alt="" />
           <span>{date}</span>
         </div>
 
