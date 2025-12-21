@@ -329,7 +329,7 @@ const EventDetailsPage: React.FC = () => {
               {event.cfpOpen && (
                 <div className="mt-4 p-3 bg-green-500/20 border border-green-500/50 rounded-lg">
                   <p className="text-sm text-green-300 font-semibold">
-                    📢 Call for Papers is Open!
+                     Call for Papers is Open!
                   </p>
                 </div>
               )}

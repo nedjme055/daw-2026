@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import { apiFetch } from "@/lib/api";
 
 type EventStatus = "DRAFT" | "PUBLISHED";
 
@@ -49,19 +50,50 @@ export default function CreateEventPage() {
     return true;
   }
 
-  async function handleSubmit() {
-    if (!validate()) return;
+ async function handleSubmit() {
+  if (!validate()) return;
 
-    setLoading(true);
+  setLoading(true);
 
-    // 🔌 Replace with API call later
-    await new Promise((res) => setTimeout(res, 1200));
+  try {
+    const payload = {
+      title: form.title,
+      theme: form.theme,
+      description: form.description,
+      location: form.location,
 
-    console.log("EVENT CREATED:", form);
+      start_date: form.startDate,
+      end_date: form.endDate,
 
+      max_participants: form.maxParticipants
+        ? Number(form.maxParticipants)
+        : null,
+
+      registration_deadline: form.registrationDeadline || null,
+
+      is_paid: form.isPaid,
+
+      cfp_enabled: form.cfpEnabled,
+      cfp_start: form.cfpEnabled ? form.cfpStart : null,
+      cfp_deadline: form.cfpEnabled ? form.cfpDeadline : null,
+
+      status: form.status,
+    };
+
+    await apiFetch("/events", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+
+    router.push("/dashboard/events");
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : "Failed to create event";
+    alert(errorMessage);
+  } finally {
     setLoading(false);
-    router.push("/dashboard"); // or /dashboard/events
   }
+}
+
 
   return (
     <div className="min-h-screen text-white bg-[linear-gradient(110deg,#2a1f5d_0%,#1f3fa3_40%,#2f6df6_70%,#9aa7ff_100%)]">
@@ -235,7 +267,9 @@ function Input({
       <input
         type={type}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+          onChange(e.target.value)
+        }
         className="px-4 py-2 rounded-xl bg-white/10 border border-white/15 outline-none focus:ring-2 focus:ring-blue-400/40"
       />
     </div>
@@ -257,7 +291,9 @@ function Textarea({
       <textarea
         rows={4}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+          onChange(e.target.value)
+        }
         className="px-4 py-2 rounded-xl bg-white/10 border border-white/15 outline-none resize-none"
       />
     </div>
@@ -278,7 +314,7 @@ function Toggle({
       <input
         type="checkbox"
         checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.checked)}
         className="accent-blue-500 w-4 h-4"
       />
       <span className="text-white/80">{label}</span>
@@ -302,7 +338,7 @@ function Select({
       <label className="text-sm text-white/80">{label}</label>
       <select
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onChange(e.target.value)}
         className="px-4 py-2 rounded-xl bg-white/10 border border-white/15 outline-none"
       >
         {options.map((o) => (
