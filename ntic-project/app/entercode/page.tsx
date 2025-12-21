@@ -109,8 +109,8 @@ export default function EnterCode() {
                 inputMode="numeric"
                 maxLength={1}
                 value={digit}
-                onChange={(e) => handleInput(index, e)}
-                onKeyDown={(e) => handleKeydown(index, e)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInput(index, e)}
+                onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => handleKeydown(index, e)}
                 onPaste={handlePaste}
                 className="w-12 p-4 text-center text-2xl font-bold bg-white/10 backdrop-blur-sm text-white
                   focus:outline-none border-b-2 border-transparent focus:border-b-blue-400

@@ -164,7 +164,7 @@ export default function ProfilePage() {
       alert("Please select an image file.");
       return;
     }
-    // 2MB cap (tweak as you like)
+    
     if (file.size > 2 * 1024 * 1024) {
       alert("Image is too large. Please use a file under 2MB.");
       return;
