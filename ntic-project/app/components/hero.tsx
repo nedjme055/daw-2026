@@ -21,7 +21,7 @@ export default function Hero() {
               </p>
 
               <div className="flex flex-wrap justify-center gap-4">
-                <button className="cursor-pointer px-11 py-4 bg-transparent text-white rounded-lg hover:bg-blue-700 transition-all duration-300 font-semibold shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-105 transform border-1  border-one">
+                <button className="cursor-pointer px-11 py-4 bg-transparent text-white rounded-lg hover:bg-blue-700 transition-all duration-300 font-semibold shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-105 transform border  border-one">
                   Create Event
                 </button>
                 <button className="cursor-pointer px-8 py-4 bg-one text-two rounded-lg hover:bg-gray-200 transition-all duration-300 font-semibold border">

@@ -7,7 +7,7 @@ export default function Footer() {
               Université Constantine 2 - Abdelhamid Mehri
             </p>
             <p className="text-slate-500 text-sm">
-              Faculté des Nouvelles Technologies de l'Information et de la Communication
+              Faculté des Nouvelles Technologies de l&apos;Information et de la Communication
             </p>
             <p className="text-slate-600 text-xs mt-4">
               © 2025-2026 | Projet DAW2 - L3 TI

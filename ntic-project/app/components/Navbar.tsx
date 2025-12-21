@@ -20,7 +20,7 @@ export default function Navbar() {
             </div>
             <div className="hidden md:flex items-center space-x-3">
             <Link rel="stylesheet" href="./signup" >
-             <button className=" hover:bg-blue-700 transition-all duration-300 cursor-pointer px-6 py-2 bg-transparent  p-3 px-3.5 rounded-xl text-one border-1 border-one rounded-lg transition-colors text-sm font-medium ">
+             <button className=" hover:bg-blue-700 transition-all duration-300 cursor-pointer px-6 py-2 bg-transparent  p-3 px-3.5 rounded-xl text-one border border-one rounded-xl transition-colors text-sm font-medium ">
                 Register
               </button>
               
