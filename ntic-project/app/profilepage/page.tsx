@@ -73,18 +73,23 @@ export default function ProfilePage() {
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const dirty = useMemo(() => !shallowEqualProfile(saved, draft), [saved, draft]);
+  const dirty = useMemo(
+    () => !shallowEqualProfile(saved, draft),
+    [saved, draft]
+  );
 
   const errors = useMemo(() => {
     const e: Partial<Record<FieldKey, string>> = {};
     if (!draft.fullName.trim()) e.fullName = "Full name is required.";
     if (!draft.email.trim()) e.email = "Email is required.";
-    else if (!isValidEmail(draft.email)) e.email = "Please enter a valid email.";
+    else if (!isValidEmail(draft.email))
+      e.email = "Please enter a valid email.";
     if (!draft.institution.trim()) e.institution = "Institution is required.";
     if (!draft.department.trim()) e.department = "Department is required.";
     if (!draft.country.trim()) e.country = "Country is required.";
     if (!draft.city.trim()) e.city = "City is required.";
-    if (draft.biography.trim().length > 500) e.biography = "Max 500 characters.";
+    if (draft.biography.trim().length > 500)
+      e.biography = "Max 500 characters.";
     return e;
   }, [draft]);
 
@@ -195,7 +200,12 @@ export default function ProfilePage() {
             className="flex items-center gap-2 text-white/70 hover:text-blue-300 transition-colors -mt-4 mb-4"
             onClick={() => history.back()}
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -237,9 +247,16 @@ export default function ProfilePage() {
                 disabled={!isEditing}
                 aria-label="Change avatar"
                 className="absolute bottom-0 right-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center hover:bg-blue-700 transition-colors shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
-                title={isEditing ? "Change avatar" : "Click Edit to change avatar"}
+                title={
+                  isEditing ? "Change avatar" : "Click Edit to change avatar"
+                }
               >
-                <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg
+                  className="w-4 h-4 text-white"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -260,13 +277,17 @@ export default function ProfilePage() {
                 type="file"
                 accept="image/*"
                 className="hidden"
-                onChange={(e) => onAvatarFile(e.target.files?.[0])}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onAvatarFile(e.target.files?.[0])
+                }
               />
             </div>
 
             {/* PROFILE NAME */}
             <div>
-              <h2 className="text-2xl font-bold text-white">{saved.fullName}</h2>
+              <h2 className="text-2xl font-bold text-white">
+                {saved.fullName}
+              </h2>
               <p className="text-blue-300 mt-1 capitalize">{roleLabel}</p>
               {status === "saved" && (
                 <p className="mt-2 text-sm text-emerald-200/90">Saved ✔</p>
@@ -298,7 +319,9 @@ export default function ProfilePage() {
           {/* HEADER */}
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h3 className="text-2xl font-bold text-white">Personal Information</h3>
+              <h3 className="text-2xl font-bold text-white">
+                Personal Information
+              </h3>
               {isEditing && (
                 <p className="text-white/70 mt-1">
                   {dirty ? "You have unsaved changes." : "No changes yet."}
@@ -321,7 +344,11 @@ export default function ProfilePage() {
                   onClick={handleSave}
                   disabled={!canSave}
                   className="px-6 py-2 bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors rounded-lg disabled:opacity-60 disabled:cursor-not-allowed"
-                  title={!canSave ? "Fix errors and make a change to enable Save" : "Save"}
+                  title={
+                    !canSave
+                      ? "Fix errors and make a change to enable Save"
+                      : "Save"
+                  }
                 >
                   Save
                 </button>
@@ -344,10 +371,17 @@ export default function ProfilePage() {
                 type="text"
                 disabled={!isEditing}
                 value={draft.fullName}
-                onChange={(e) => updateField("fullName", e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  updateField("fullName", e.target.value)
+                }
                 placeholder="Full Name"
                 aria-invalid={!!errors.fullName}
-                className={fieldClass + (errors.fullName ? " border-red-300/60 focus:border-red-200" : "")}
+                className={
+                  fieldClass +
+                  (errors.fullName
+                    ? " border-red-300/60 focus:border-red-200"
+                    : "")
+                }
               />
               <label className={labelClass}>Full Name</label>
               {errorText("fullName")}
@@ -359,10 +393,17 @@ export default function ProfilePage() {
                 type="email"
                 disabled={!isEditing}
                 value={draft.email}
-                onChange={(e) => updateField("email", e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  updateField("email", e.target.value)
+                }
                 placeholder="Email"
                 aria-invalid={!!errors.email}
-                className={fieldClass + (errors.email ? " border-red-300/60 focus:border-red-200" : "")}
+                className={
+                  fieldClass +
+                  (errors.email
+                    ? " border-red-300/60 focus:border-red-200"
+                    : "")
+                }
               />
               <label className={labelClass}>Email</label>
               {errorText("email")}
@@ -376,10 +417,17 @@ export default function ProfilePage() {
                   type="text"
                   disabled={!isEditing}
                   value={draft.institution}
-                  onChange={(e) => updateField("institution", e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    updateField("institution", e.target.value)
+                  }
                   placeholder="Institution"
                   aria-invalid={!!errors.institution}
-                  className={fieldClass + (errors.institution ? " border-red-300/60 focus:border-red-200" : "")}
+                  className={
+                    fieldClass +
+                    (errors.institution
+                      ? " border-red-300/60 focus:border-red-200"
+                      : "")
+                  }
                 />
                 <label className={labelClass}>Institution</label>
                 {errorText("institution")}
@@ -391,10 +439,17 @@ export default function ProfilePage() {
                   type="text"
                   disabled={!isEditing}
                   value={draft.department}
-                  onChange={(e) => updateField("department", e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    updateField("department", e.target.value)
+                  }
                   placeholder="Department"
                   aria-invalid={!!errors.department}
-                  className={fieldClass + (errors.department ? " border-red-300/60 focus:border-red-200" : "")}
+                  className={
+                    fieldClass +
+                    (errors.department
+                      ? " border-red-300/60 focus:border-red-200"
+                      : "")
+                  }
                 />
                 <label className={labelClass}>Department</label>
                 {errorText("department")}
@@ -407,7 +462,9 @@ export default function ProfilePage() {
                 type="text"
                 disabled={!isEditing}
                 value={draft.researchDomain}
-                onChange={(e) => updateField("researchDomain", e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  updateField("researchDomain", e.target.value)
+                }
                 placeholder="Research Domain"
                 className={fieldClass}
               />
@@ -421,10 +478,17 @@ export default function ProfilePage() {
                   type="text"
                   disabled={!isEditing}
                   value={draft.country}
-                  onChange={(e) => updateField("country", e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    updateField("country", e.target.value)
+                  }
                   placeholder="Country"
                   aria-invalid={!!errors.country}
-                  className={fieldClass + (errors.country ? " border-red-300/60 focus:border-red-200" : "")}
+                  className={
+                    fieldClass +
+                    (errors.country
+                      ? " border-red-300/60 focus:border-red-200"
+                      : "")
+                  }
                 />
                 <label className={labelClass}>Country</label>
                 {errorText("country")}
@@ -435,10 +499,17 @@ export default function ProfilePage() {
                   type="text"
                   disabled={!isEditing}
                   value={draft.city}
-                  onChange={(e) => updateField("city", e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    updateField("city", e.target.value)
+                  }
                   placeholder="City"
                   aria-invalid={!!errors.city}
-                  className={fieldClass + (errors.city ? " border-red-300/60 focus:border-red-200" : "")}
+                  className={
+                    fieldClass +
+                    (errors.city
+                      ? " border-red-300/60 focus:border-red-200"
+                      : "")
+                  }
                 />
                 <label className={labelClass}>City</label>
                 {errorText("city")}
@@ -450,14 +521,26 @@ export default function ProfilePage() {
               <select
                 disabled={!isEditing}
                 value={draft.role}
-                onChange={(e) => updateField("role", e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                  updateField("role", e.target.value)
+                }
                 className="peer w-full p-6 bg-white/10 backdrop-blur-sm text-white focus:outline-none border-2 border-white/20 focus:border-blue-400 rounded-lg disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                <option className="text-black" value="student">student</option>
-                <option className="text-black" value="researcher">researcher</option>
-                <option className="text-black" value="faculty">faculty</option>
-                <option className="text-black" value="industry">industry</option>
-                <option className="text-black" value="other">other</option>
+                <option className="text-black" value="student">
+                  student
+                </option>
+                <option className="text-black" value="researcher">
+                  researcher
+                </option>
+                <option className="text-black" value="faculty">
+                  faculty
+                </option>
+                <option className="text-black" value="industry">
+                  industry
+                </option>
+                <option className="text-black" value="other">
+                  other
+                </option>
               </select>
               <label className={labelClass}>Role</label>
             </div>
@@ -467,13 +550,17 @@ export default function ProfilePage() {
               <textarea
                 disabled={!isEditing}
                 value={draft.biography}
-                onChange={(e) => updateField("biography", e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  updateField("biography", e.target.value)
+                }
                 placeholder="Biography"
                 rows={4}
                 aria-invalid={!!errors.biography}
                 className={
                   "peer w-full p-6 pt-8 bg-white/10 backdrop-blur-sm text-white placeholder-transparent focus:outline-none border-2 border-white/20 focus:border-blue-400 rounded-lg disabled:opacity-70 disabled:cursor-not-allowed resize-none" +
-                  (errors.biography ? " border-red-300/60 focus:border-red-200" : "")
+                  (errors.biography
+                    ? " border-red-300/60 focus:border-red-200"
+                    : "")
                 }
               />
               <label className={labelClass}>Biography</label>
