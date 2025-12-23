@@ -1,33 +1,74 @@
-'use client';
+"use client";
+import { useRouter } from "next/navigation";
+import { apiFetch } from "@/lib/api";
 
 import React, { useState } from "react";
 import Link from "next/link";
 
 export default function Signup() {
+  const router = useRouter();
   const [fullname, setFullname] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("");
   const [remember, setRemember] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [institution, setInstitution] = useState("");
+  const [bio, setBio] = useState("");
+  const [researchDomain, setResearchDomain] = useState("");
+  const [country, setCountry] = useState("");
 
-  const signup = () => {
+  const signup = async () => {
+    setErrorMessage("");
+
     if (!fullname || !email || !password || !role) {
       setErrorMessage("Please fill in all fields.");
       return;
     }
+
     if (password.length < 6) {
       setErrorMessage("Password must be at least 6 characters.");
       return;
     }
 
-    alert("Account created successfully!");
-    setErrorMessage("");
+    try {
+      await apiFetch("/sanctum/csrf-cookie");
+
+      await apiFetch("/api/register", {
+        method: "POST",
+        body: JSON.stringify({
+          name: fullname,
+          email,
+          password,
+          password_confirmation: password,
+          role,
+        }),
+      });
+
+      router.push("/login");
+    } catch (err: any) {
+      setErrorMessage(
+        err?.message || err?.error || "Registration failed. Please try again."
+      );
+    }
   };
 
   return (
-    <div className="min-h-screen w-full bg-[linear-gradient(110deg,#2a1f5d_0%,#1f3fa3_40%,#2f6df6_70%,#9aa7ff_100%)] text-white flex flex-col md:flex-row">
-      <div className="w-full md:w-1/3 flex items-center justify-center p-6 md:p-8 min-h-screen md:min-h-0">
+    <div className="min-h-screen md:h-screen w-full bg-[linear-gradient(110deg,#2a1f5d_0%,#1f3fa3_40%,#2f6df6_70%,#9aa7ff_100%)] text-white flex flex-col md:flex-row md:overflow-hidden">
+
+      <div
+  className="
+    w-full md:w-1/3
+    flex flex-col
+    items-center
+    justify-center md:justify-start
+    p-6 md:p-8
+    overflow-y-auto
+    md:h-screen
+    scrollbar-hide
+  "
+>
+
         <div className="w-full max-w-sm">
           <div className="mb-8 text-center md:text-left">
             <h1 className="text-3xl md:text-4xl font-extrabold leading-tight">
@@ -41,11 +82,6 @@ export default function Signup() {
           </div>
 
           <div className="space-y-5">
-            <div className="flex items-center gap-3">
-              <hr className="flex-1 border-white/20" />
-              <span className="text-white/50 text-xs">OR</span>
-              <hr className="flex-1 border-white/20" />
-            </div>
 
             <div className="space-y-5">
               <div className="relative">
@@ -89,6 +125,15 @@ export default function Signup() {
                   Password
                 </label>
               </div>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                  placeholder="Country (optional)"
+                  className="peer w-full p-6 bg-white/10 text-white border-2 border-white/20 rounded-lg"
+                />
+              </div>
 
               <div className="relative">
                 <select
@@ -124,6 +169,33 @@ export default function Signup() {
                     />
                   </svg>
                 </span>
+              </div>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={researchDomain}
+                  onChange={(e) => setResearchDomain(e.target.value)}
+                  placeholder="Research Domain (optional)"
+                  className="peer w-full p-6 bg-white/10 text-white border-2 border-white/20 rounded-lg"
+                />
+              </div>
+
+              <div className="relative">
+                <input
+                  type="text"
+                  value={institution}
+                  onChange={(e) => setInstitution(e.target.value)}
+                  placeholder="Institution (optional)"
+                  className="peer w-full p-6 bg-white/10 text-white border-2 border-white/20 rounded-lg"
+                />
+              </div>
+              <div className="relative">
+                <textarea
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  placeholder="Short Bio (optional)"
+                  className="peer w-full p-6 bg-white/10 text-white border-2 border-white/20 rounded-lg"
+                />
               </div>
 
               <div className="flex items-center justify-between text-sm">
@@ -162,10 +234,10 @@ export default function Signup() {
         </div>
       </div>
 
-      <div className="hidden md:block w-full md:w-2/3 relative">
+      <div className="hidden md:block w-2/3 h-screen sticky top-0">
         <img
           src="/assets/signup.jpg"
-          className="w-full h-full min-h-screen object-cover brightness-75"
+          className="w-full h-full object-cover brightness-75"
           alt="workshop"
         />
       </div>

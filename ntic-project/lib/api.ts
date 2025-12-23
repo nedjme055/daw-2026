@@ -1,22 +1,23 @@
-const API_URL = "http://localhost:8000/api";
+const API_URL = "http://localhost:8000";
 
 export async function apiFetch(
-  url: string,
+  endpoint: string,
   options: RequestInit = {}
 ) {
-  const res = await fetch(API_URL + url, {
+  const res = await fetch(`${API_URL}${endpoint}`, {
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...(options.headers || {}),
     },
-    credentials: "include", 
     ...options,
   });
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || "API error");
+  // IMPORTANT: do NOT force JSON if there is no body
+  if (res.status === 204) {
+    return null;
   }
 
-  return res.json();
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
 }
