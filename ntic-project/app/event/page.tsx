@@ -1,14 +1,43 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import {
+  ArrowLeft,
+  Calendar,
+  MapPin,
+  Users,
+  BadgeCheck,
+  FileText,
+  GraduationCap,
+  UserRound,
+  Mail,
+  Clock,
+  CreditCard,
+  Landmark,
+  WalletCards,
+  X,
+  ChevronRight,
+  Info,
+  Sparkles,
+  ShieldCheck,
+} from "lucide-react";
 
+/**
+ * ✅ Single-file, copy-paste Event Details page
+ * ✅ Keeps your logic: tabs + register modal (multi-step) + submit modal
+ * ✅ Improves design: calmer, consistent, premium academic feel
+ * ✅ No emojis, uses lucide-react icons (SVG)
+ * ✅ Mobile friendly
+ */
+
+/* -------------------- Types -------------------- */
 interface Speaker {
   id: string;
   name: string;
   title: string;
   organization: string;
-  avatar: string;
+  avatar: string; // initials
 }
 
 interface ProgramSession {
@@ -26,649 +55,1117 @@ interface Organizer {
   email: string;
 }
 
+type TabKey = "overview" | "program" | "speakers";
+type TicketType = "student" | "regular";
+type RegistrationStep = "form" | "payment" | "success";
+type PaymentMethod = "CARD" | "TRANSFER" | "ONSITE";
+
+/* -------------------- Helpers -------------------- */
+function cx(...classes: Array<string | false | null | undefined>) {
+  return classes.filter(Boolean).join(" ");
+}
+
+function formatCapacity(current: number, max: number) {
+  const pct = Math.min(100, Math.round((current / Math.max(1, max)) * 100));
+  return { pct, label: `${current}/${max}` };
+}
+
+function sessionTypeLabel(type: ProgramSession["type"]) {
+  switch (type) {
+    case "keynote":
+      return "Keynote";
+    case "panel":
+      return "Panel";
+    case "workshop":
+      return "Workshop";
+    case "break":
+      return "Break";
+  }
+}
+
+function sessionTypePill(type: ProgramSession["type"]) {
+  // Calmer, consistent palette
+  switch (type) {
+    case "keynote":
+      return "bg-indigo-500/10 text-indigo-200 border-indigo-400/20";
+    case "panel":
+      return "bg-blue-500/10 text-blue-200 border-blue-400/20";
+    case "workshop":
+      return "bg-emerald-500/10 text-emerald-200 border-emerald-400/20";
+    case "break":
+      return "bg-slate-500/10 text-slate-200 border-slate-400/20";
+  }
+}
+
+/* -------------------- UI Atoms -------------------- */
+function IconBadge({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className="mt-0.5 h-9 w-9 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center">
+        {icon}
+      </div>
+      <div className="leading-tight">
+        <div className="text-xs text-white/60">{label}</div>
+        <div className="text-sm font-semibold text-white/90">{value}</div>
+      </div>
+    </div>
+  );
+}
+
+function PrimaryButton({
+  children,
+  onClick,
+  disabled,
+  className,
+  iconRight,
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  disabled?: boolean;
+  className?: string;
+  iconRight?: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={cx(
+        "w-full inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 font-semibold transition",
+        "bg-white text-blue-700 hover:bg-blue-50 active:scale-[0.99]",
+        "disabled:opacity-50 disabled:cursor-not-allowed",
+        className
+      )}
+    >
+      {children}
+      {iconRight}
+    </button>
+  );
+}
+
+function SecondaryButton({
+  children,
+  onClick,
+  className,
+  iconRight,
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  className?: string;
+  iconRight?: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cx(
+        "w-full inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 font-semibold transition",
+        "bg-blue-500/10 text-white border border-white/15 hover:bg-blue-500/15 active:scale-[0.99]",
+        className
+      )}
+    >
+      {children}
+      {iconRight}
+    </button>
+  );
+}
+
+function GhostButton({
+  children,
+  onClick,
+  className,
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cx(
+        "inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition",
+        "bg-white/5 hover:bg-white/10 border border-white/10",
+        className
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Card({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cx(
+        "rounded-2xl bg-white/8 border border-white/12 backdrop-blur-md",
+        className
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+function SectionTitle({
+  title,
+  subtitle,
+  icon,
+}: {
+  title: string;
+  subtitle?: string;
+  icon?: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <div className="flex items-center gap-2">
+          {icon ? (
+            <div className="h-9 w-9 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center">
+              {icon}
+            </div>
+          ) : null}
+          <h2 className="text-2xl md:text-3xl font-extrabold">{title}</h2>
+        </div>
+        {subtitle ? (
+          <p className="mt-2 text-white/70 max-w-3xl">{subtitle}</p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+/* -------------------- Modal Shell -------------------- */
+function Modal({
+  title,
+  subtitle,
+  children,
+  onClose,
+  footer,
+  wide,
+}: {
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+  onClose: () => void;
+  footer?: React.ReactNode;
+  wide?: boolean;
+}) {
+  return (
+    <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
+      <div
+        className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <div
+        className={cx(
+          "relative w-full rounded-2xl border border-white/15 bg-slate-900/90 backdrop-blur-xl shadow-2xl",
+          wide ? "max-w-2xl" : "max-w-md"
+        )}
+      >
+        <div className="flex items-start justify-between gap-3 px-6 pt-6">
+          <div>
+            <h3 className="text-xl md:text-2xl font-extrabold">{title}</h3>
+            {subtitle ? (
+              <p className="mt-1 text-sm text-white/65">{subtitle}</p>
+            ) : null}
+          </div>
+          <button
+            onClick={onClose}
+            className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition flex items-center justify-center"
+            aria-label="Close"
+            type="button"
+          >
+            <X className="h-5 w-5 text-white/80" />
+          </button>
+        </div>
+
+        <div className="px-6 py-5">{children}</div>
+
+        {footer ? (
+          <div className="px-6 pb-6 pt-0">{footer}</div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+/* -------------------- Main Page -------------------- */
 const EventDetailsPage: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const id = searchParams?.get("id") ?? null;
+  const id = searchParams?.get("id") ?? "1";
 
-  const [activeTab, setActiveTab] = useState<
-    "overview" | "program" | "speakers"
-  >("overview");
+  const [activeTab, setActiveTab] = useState<TabKey>("overview");
+
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
-  const [registrationStep, setRegistrationStep] = useState<
-    "form" | "payment" | "success"
-  >("form");
-  const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
-  const [ticketType, setTicketType] = useState<"student" | "regular">(
-    "regular"
-  );
-  const [registrationStatus] = useState<"registered" | "confirmed">(
-    "registered"
-  );
-  const [submissionStatus] = useState<
-    "submitted" | "under-review" | "accepted"
-  >("under-review");
 
-  // Mock event data - replace with API call using `id`
-  const event = {
-    id: id ?? "1",
-    title: "International AI & Machine Learning Conference 2025",
-    shortDescription:
-      "Leading conference on artificial intelligence and machine learning",
-    fullDescription:
-      "Join us for the premier conference on artificial intelligence and machine learning. This three-day event brings together researchers, practitioners, and industry leaders to share cutting-edge research, innovative applications, and future directions in AI. Explore deep learning, natural language processing, computer vision, reinforcement learning, and more.",
-    date: "March 15-17, 2025",
-    startDate: "2025-03-15",
-    endDate: "2025-03-17",
-    location: "Paris Convention Center, Paris, France",
-    category: "AI & Technology",
-    participants: 450,
-    maxCapacity: 500,
-    registrationDeadline: "March 1, 2025",
-    cfpOpen: true,
-    cfpDeadline: "February 15, 2025",
-    gradient: "from-blue-600 to-purple-700",
-    organizers: [
-      {
-        id: "1",
-        name: "Dr. Sarah Johnson",
-        role: "Conference Chair",
-        email: "sarah.j@conference.org",
-      },
-      {
-        id: "2",
-        name: "Prof. Michael Chen",
-        role: "Program Committee Chair",
-        email: "michael.c@conference.org",
-      },
-      {
-        id: "3",
-        name: "Dr. Emma Williams",
-        role: "Local Arrangements",
-        email: "emma.w@conference.org",
-      },
-    ] as Organizer[],
-    speakers: [
-      {
-        id: "1",
-        name: "Dr. Alex Thompson",
-        title: "Keynote Speaker",
-        organization: "MIT AI Lab",
-        avatar: "AT",
-      },
-      {
-        id: "2",
-        name: "Prof. Maria Garcia",
-        title: "Panel Moderator",
-        organization: "Stanford University",
-        avatar: "MG",
-      },
-      {
-        id: "3",
-        name: "Dr. James Liu",
-        title: "Workshop Leader",
-        organization: "Google AI",
-        avatar: "JL",
-      },
-      {
-        id: "4",
-        name: "Dr. Sofia Martinez",
-        title: "Invited Speaker",
-        organization: "DeepMind",
-        avatar: "SM",
-      },
-    ] as Speaker[],
-    program: [
-      {
-        id: "1",
-        time: "09:00 - 09:30",
-        title: "Registration & Welcome Coffee",
-        type: "break" as const,
-      },
-      {
-        id: "2",
-        time: "09:30 - 10:30",
-        title: "Opening Keynote: The Future of AI",
-        speaker: "Dr. Alex Thompson",
-        type: "keynote" as const,
-      },
-      {
-        id: "3",
-        time: "10:45 - 12:00",
-        title: "Panel: Ethics in AI Development",
-        speaker: "Prof. Maria Garcia",
-        type: "panel" as const,
-      },
-      {
-        id: "4",
-        time: "12:00 - 13:30",
-        title: "Lunch Break",
-        type: "break" as const,
-      },
-      {
-        id: "5",
-        time: "13:30 - 15:00",
-        title: "Workshop: Building Neural Networks",
-        speaker: "Dr. James Liu",
-        type: "workshop" as const,
-      },
-      {
-        id: "6",
-        time: "15:15 - 16:45",
-        title: "Research Presentations Track A",
-        type: "panel" as const,
-      },
-      {
-        id: "7",
-        time: "17:00 - 18:00",
-        title: "Networking Reception",
-        type: "break" as const,
-      },
-    ] as ProgramSession[],
+  const [registrationStep, setRegistrationStep] =
+    useState<RegistrationStep>("form");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
+  const [ticketType, setTicketType] = useState<TicketType>("regular");
+
+  // Keep your “status” state if you want to connect to backend later
+  const [registrationStatus] = useState<"registered" | "confirmed">("registered");
+  const [submissionStatus] = useState<"submitted" | "under-review" | "accepted">(
+    "under-review"
+  );
+
+  // Mock event data (replace with API by id later)
+  const event = useMemo(() => {
+    return {
+      id,
+      title: "International AI & Machine Learning Conference 2025",
+      shortDescription:
+        "A high-impact scientific conference on Artificial Intelligence and Machine Learning.",
+      fullDescription:
+        "Join researchers, practitioners, and industry leaders for a three-day scientific event. Explore deep learning, natural language processing, computer vision, reinforcement learning, and ethical considerations. The program includes keynote talks, panel sessions, workshops, and networking.",
+      date: "March 15–17, 2025",
+      startDate: "2025-03-15",
+      endDate: "2025-03-17",
+      location: "Paris Convention Center, Paris, France",
+      category: "AI & Technology",
+      participants: 450,
+      maxCapacity: 500,
+      registrationDeadline: "March 1, 2025",
+      cfpOpen: true,
+      cfpDeadline: "February 15, 2025",
+      gradient: "from-blue-600 to-indigo-700",
+      topics: [
+        "Deep Learning",
+        "Natural Language Processing",
+        "Computer Vision",
+        "Reinforcement Learning",
+        "AI Ethics",
+        "ML Applications",
+      ],
+      organizers: [
+        {
+          id: "1",
+          name: "Dr. Sarah Johnson",
+          role: "Conference Chair",
+          email: "sarah.j@conference.org",
+        },
+        {
+          id: "2",
+          name: "Prof. Michael Chen",
+          role: "Program Committee Chair",
+          email: "michael.c@conference.org",
+        },
+        {
+          id: "3",
+          name: "Dr. Emma Williams",
+          role: "Local Arrangements",
+          email: "emma.w@conference.org",
+        },
+      ] as Organizer[],
+      speakers: [
+        {
+          id: "1",
+          name: "Dr. Alex Thompson",
+          title: "Keynote Speaker",
+          organization: "MIT AI Lab",
+          avatar: "AT",
+        },
+        {
+          id: "2",
+          name: "Prof. Maria Garcia",
+          title: "Panel Moderator",
+          organization: "Stanford University",
+          avatar: "MG",
+        },
+        {
+          id: "3",
+          name: "Dr. James Liu",
+          title: "Workshop Leader",
+          organization: "Google AI",
+          avatar: "JL",
+        },
+        {
+          id: "4",
+          name: "Dr. Sofia Martinez",
+          title: "Invited Speaker",
+          organization: "DeepMind",
+          avatar: "SM",
+        },
+      ] as Speaker[],
+      program: [
+        {
+          id: "1",
+          time: "09:00 - 09:30",
+          title: "Registration & Welcome Coffee",
+          type: "break" as const,
+        },
+        {
+          id: "2",
+          time: "09:30 - 10:30",
+          title: "Opening Keynote: The Future of AI",
+          speaker: "Dr. Alex Thompson",
+          type: "keynote" as const,
+        },
+        {
+          id: "3",
+          time: "10:45 - 12:00",
+          title: "Panel: Ethics in AI Development",
+          speaker: "Prof. Maria Garcia",
+          type: "panel" as const,
+        },
+        {
+          id: "4",
+          time: "12:00 - 13:30",
+          title: "Lunch Break",
+          type: "break" as const,
+        },
+        {
+          id: "5",
+          time: "13:30 - 15:00",
+          title: "Workshop: Building Neural Networks",
+          speaker: "Dr. James Liu",
+          type: "workshop" as const,
+        },
+        {
+          id: "6",
+          time: "15:15 - 16:45",
+          title: "Research Presentations Track A",
+          type: "panel" as const,
+        },
+        {
+          id: "7",
+          time: "17:00 - 18:00",
+          title: "Networking Reception",
+          type: "break" as const,
+        },
+      ] as ProgramSession[],
+    };
+  }, [id]);
+
+  const capacity = useMemo(
+    () => formatCapacity(event.participants, event.maxCapacity),
+    [event.participants, event.maxCapacity]
+  );
+
+  const handleRegister = () => {
+    setRegistrationStep("form");
+    setPaymentMethod(null);
+    setShowRegisterModal(true);
   };
 
-  const handleRegister = () => setShowRegisterModal(true);
-  const handleSubmitCommunication = () => setShowSubmitModal(true);
-
-  const getSessionColor = (type: string) => {
-    switch (type) {
-      case "keynote":
-        return "bg-purple-500/20 border-purple-500/50 text-purple-300";
-      case "panel":
-        return "bg-blue-500/20 border-blue-500/50 text-blue-300";
-      case "workshop":
-        return "bg-green-500/20 border-green-500/50 text-green-300";
-      case "break":
-        return "bg-slate-500/20 border-slate-500/50 text-slate-300";
-      default:
-        return "bg-slate-500/20 border-slate-500/50 text-slate-300";
-    }
+  const handleSubmitCommunication = () => {
+    setShowSubmitModal(true);
   };
+
+  const tabs: Array<{ key: TabKey; label: string; icon: React.ReactNode }> = [
+    { key: "overview", label: "Overview", icon: <Info className="h-4 w-4" /> },
+    { key: "program", label: "Program", icon: <Clock className="h-4 w-4" /> },
+    { key: "speakers", label: "Speakers", icon: <UserRound className="h-4 w-4" /> },
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
-      {/* Hero Section */}
-      <div
-        className={`relative bg-gradient-to-br ${event.gradient} py-20 overflow-hidden`}
-      >
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,.1)_50%,transparent_75%,transparent_100%)] bg-[length:250%_250%]" />
-        </div>
-
-        <div className="max-w-7xl mx-auto px-6 relative z-10">
+    <div className="min-h-screen text-white bg-[linear-gradient(110deg,#2a1f5d_0%,#1f3fa3_40%,#2f6df6_70%,#9aa7ff_100%)]">
+      {/* Top strip */}
+      <header className="sticky top-0 z-50 bg-white/10 backdrop-blur-md border-b border-white/15">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <button
             onClick={() => router.back()}
-            className="flex items-center gap-2 text-white/80 hover:text-white mb-6 transition-colors"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-white/80 hover:text-white transition"
+            type="button"
           >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M10 19l-7-7m0 0l7-7m-7 7h18"
-              />
-            </svg>
-            Back to Events
+            <ArrowLeft className="h-4 w-4" />
+            Back to events
           </button>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="md:col-span-2">
-              <div className="inline-block px-4 py-1.5 bg-white/20 backdrop-blur-sm rounded-full text-sm font-semibold mb-4">
-                {event.category}
+          <div className="hidden sm:flex items-center gap-2 text-xs text-white/70">
+            <ShieldCheck className="h-4 w-4" />
+            Academic event page (public)
+          </div>
+        </div>
+      </header>
+
+      {/* HERO */}
+      <section className="relative">
+        {/* Soft overlay */}
+        <div className="absolute inset-0 opacity-20 pointer-events-none">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,.25),transparent_55%)]" />
+        </div>
+
+        <div className="max-w-7xl mx-auto px-6 pt-12 pb-10 relative z-10">
+          <div className="grid lg:grid-cols-3 gap-6 lg:gap-10">
+            {/* Left main */}
+            <div className="lg:col-span-2">
+              <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 bg-white/10 border border-white/15 backdrop-blur-sm">
+                <Sparkles className="h-4 w-4 text-white/85" />
+                <span className="text-sm font-semibold text-white/90">
+                  {event.category}
+                </span>
               </div>
-              <h1 className="text-4xl md:text-5xl font-bold mb-4 leading-tight">
+
+              <h1 className="mt-5 text-4xl md:text-5xl font-extrabold leading-tight">
                 {event.title}
               </h1>
-              <p className="text-xl text-white/90 mb-6">
+
+              <p className="mt-4 text-lg md:text-xl text-white/85 max-w-3xl leading-relaxed">
                 {event.shortDescription}
               </p>
 
-              <div className="flex flex-wrap gap-6 text-white/90">
-                <div className="flex items-center gap-2">
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                  </svg>
-                  <span>{event.date}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                    />
-                  </svg>
-                  <span>{event.location}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                    />
-                  </svg>
-                  <span>
-                    {event.participants}/{event.maxCapacity} Registered
+              <div className="mt-6 grid sm:grid-cols-2 gap-4">
+                <IconBadge
+                  icon={<Calendar className="h-5 w-5 text-white/80" />}
+                  label="Dates"
+                  value={event.date}
+                />
+                <IconBadge
+                  icon={<MapPin className="h-5 w-5 text-white/80" />}
+                  label="Location"
+                  value={event.location}
+                />
+                <IconBadge
+                  icon={<Users className="h-5 w-5 text-white/80" />}
+                  label="Registration"
+                  value={`${capacity.label} (${capacity.pct}%)`}
+                />
+                <IconBadge
+                  icon={<BadgeCheck className="h-5 w-5 text-white/80" />}
+                  label="Status"
+                  value={
+                    event.cfpOpen ? "CFP Open (Authors can submit)" : "CFP Closed"
+                  }
+                />
+              </div>
+
+              {/* Capacity bar */}
+              <div className="mt-6">
+                <div className="flex items-center justify-between text-xs text-white/70">
+                  <span>Capacity</span>
+                  <span className="font-semibold text-white/85">
+                    {capacity.pct}%
                   </span>
+                </div>
+                <div className="mt-2 h-2 rounded-full bg-white/10 border border-white/10 overflow-hidden">
+                  <div
+                    className="h-full bg-white/70"
+                    style={{ width: `${capacity.pct}%` }}
+                  />
                 </div>
               </div>
             </div>
 
-            {/* Action Card */}
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 h-fit border border-white/20">
-              <h3 className="text-xl font-bold mb-4">Join This Event</h3>
+            {/* Action card */}
+            <Card className="p-6 h-fit">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-xl font-extrabold">Join this event</h3>
+                  <p className="mt-1 text-sm text-white/70">
+                    Choose participant registration or submit a communication.
+                  </p>
+                </div>
+              </div>
 
-              <div className="space-y-3 mb-6">
-                <div className="flex justify-between text-sm">
-                  <span className="text-white/70">Registration Deadline</span>
-                  <span className="font-semibold">
+              <div className="mt-5 space-y-3 text-sm">
+                <div className="flex items-center justify-between text-white/75">
+                  <span>Registration deadline</span>
+                  <span className="font-semibold text-white/90">
                     {event.registrationDeadline}
                   </span>
                 </div>
-                {event.cfpOpen && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-white/70">CFP Deadline</span>
-                    <span className="font-semibold">{event.cfpDeadline}</span>
+                {event.cfpOpen ? (
+                  <div className="flex items-center justify-between text-white/75">
+                    <span>CFP deadline</span>
+                    <span className="font-semibold text-white/90">
+                      {event.cfpDeadline}
+                    </span>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="mt-5 space-y-3">
+                <PrimaryButton onClick={handleRegister} iconRight={<ChevronRight className="h-4 w-4" />}>
+                  Register as participant
+                </PrimaryButton>
+
+                {event.cfpOpen ? (
+                  <SecondaryButton
+                    onClick={handleSubmitCommunication}
+                    iconRight={<FileText className="h-4 w-4" />}
+                  >
+                    Submit communication
+                  </SecondaryButton>
+                ) : (
+                  <div className="rounded-xl bg-white/5 border border-white/10 p-3 text-sm text-white/70">
+                    CFP is currently closed.
                   </div>
                 )}
               </div>
 
-              <div className="space-y-3">
-                <button
-                  onClick={handleRegister}
-                  className="w-full px-6 py-3 bg-white text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition-all hover:shadow-lg"
-                >
-                  Register as Participant
-                </button>
-
-                {event.cfpOpen && (
-                  <button
-                    onClick={handleSubmitCommunication}
-                    className="w-full px-6 py-3 bg-blue-600/20 text-white border-2 border-white/30 rounded-lg font-semibold hover:bg-blue-600/30 transition-all"
-                  >
-                    Submit Communication
-                  </button>
-                )}
-              </div>
-
-              {event.cfpOpen && (
-                <div className="mt-4 p-3 bg-green-500/20 border border-green-500/50 rounded-lg">
-                  <p className="text-sm text-green-300 font-semibold">
-                     Call for Papers is Open!
-                  </p>
+              {/* Small hints */}
+              <div className="mt-5 grid grid-cols-1 gap-2">
+                <div className="rounded-xl bg-white/5 border border-white/10 p-3 text-xs text-white/70">
+                  <span className="font-semibold text-white/85">Note:</span>{" "}
+                  Payment is simulated (DAW2 demo). Backend can enforce rules later.
                 </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Tabs Navigation */}
-      <div className="border-b border-slate-700 sticky top-0 bg-slate-900/95 backdrop-blur-sm z-40">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex gap-8">
-            {(["overview", "program", "speakers"] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`py-4 px-2 font-semibold capitalize transition-colors relative ${
-                  activeTab === tab
-                    ? "text-blue-400"
-                    : "text-slate-400 hover:text-white"
-                }`}
-              >
-                {tab}
-                {activeTab === tab && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-400" />
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Content Sections */}
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        {/* Overview Tab */}
-        {activeTab === "overview" && (
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="md:col-span-2 space-y-8">
-              <div>
-                <h2 className="text-3xl font-bold mb-4">About This Event</h2>
-                <p className="text-slate-300 leading-relaxed text-lg">
-                  {event.fullDescription}
-                </p>
+                <div className="rounded-xl bg-white/5 border border-white/10 p-3 text-xs text-white/70">
+                  <span className="font-semibold text-white/85">Status:</span>{" "}
+                  Registration is{" "}
+                  <span className="text-white/90 font-semibold">
+                    {registrationStatus}
+                  </span>{" "}
+                  • Submission is{" "}
+                  <span className="text-white/90 font-semibold">
+                    {submissionStatus}
+                  </span>
+                </div>
               </div>
+            </Card>
+          </div>
+        </div>
+      </section>
 
-              <div>
-                <h3 className="text-2xl font-bold mb-4">Key Topics</h3>
-                <div className="grid md:grid-cols-2 gap-3">
-                  {[
-                    "Deep Learning",
-                    "Natural Language Processing",
-                    "Computer Vision",
-                    "Reinforcement Learning",
-                    "AI Ethics",
-                    "Machine Learning Applications",
-                  ].map((topic) => (
+      {/* Tabs */}
+      <div className="sticky top-[64px] z-40 border-y border-white/12 bg-white/8 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex gap-2 overflow-x-auto py-3">
+            {tabs.map((t) => {
+              const active = activeTab === t.key;
+              return (
+                <button
+                  key={t.key}
+                  onClick={() => setActiveTab(t.key)}
+                  type="button"
+                  className={cx(
+                    "shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-semibold transition",
+                    active
+                      ? "bg-white/15 border-white/20 text-white"
+                      : "bg-white/5 border-white/10 text-white/70 hover:text-white hover:bg-white/10"
+                  )}
+                >
+                  {t.icon}
+                  {t.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <main className="max-w-7xl mx-auto px-6 py-10">
+        {activeTab === "overview" && (
+          <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
+            <Card className="p-6 lg:col-span-2">
+              <SectionTitle
+                title="About this event"
+                subtitle="Scientific description, objectives, and main topics."
+                icon={<Info className="h-5 w-5 text-white/85" />}
+              />
+
+              <p className="mt-5 text-white/80 leading-relaxed text-base md:text-lg">
+                {event.fullDescription}
+              </p>
+
+              <div className="mt-8">
+                <h3 className="text-lg font-extrabold">Key topics</h3>
+                <div className="mt-3 grid sm:grid-cols-2 gap-3">
+                  {event.topics.map((topic) => (
                     <div
                       key={topic}
-                      className="flex items-center gap-2 text-slate-300"
+                      className="rounded-xl bg-white/5 border border-white/10 p-3 flex items-center gap-3"
                     >
-                      <svg
-                        className="w-5 h-5 text-blue-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                      {topic}
+                      <div className="h-9 w-9 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center">
+                        <GraduationCap className="h-5 w-5 text-white/80" />
+                      </div>
+                      <div className="font-semibold text-white/85">{topic}</div>
                     </div>
                   ))}
                 </div>
               </div>
-            </div>
+            </Card>
 
-            {/* Organizers Sidebar */}
-            <div>
-              <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6">
-                <h3 className="text-xl font-bold mb-4">Event Organizers</h3>
-                <div className="space-y-4">
-                  {event.organizers.map((organizer) => (
-                    <div key={organizer.id} className="space-y-1">
-                      <p className="font-semibold text-white">
-                        {organizer.name}
-                      </p>
-                      <p className="text-sm text-blue-400">{organizer.role}</p>
-                      <a
-                        href={`mailto:${organizer.email}`}
-                        className="text-sm text-slate-400 hover:text-white transition-colors"
-                      >
-                        {organizer.email}
-                      </a>
+            <Card className="p-6 h-fit">
+              <SectionTitle
+                title="Organizers"
+                subtitle="Official contacts for this scientific event."
+                icon={<UserRound className="h-5 w-5 text-white/85" />}
+              />
+              <div className="mt-5 space-y-4">
+                {event.organizers.map((o) => (
+                  <div
+                    key={o.id}
+                    className="rounded-xl bg-white/5 border border-white/10 p-4"
+                  >
+                    <div className="font-extrabold text-white/90">{o.name}</div>
+                    <div className="text-sm text-blue-200/90 font-semibold mt-1">
+                      {o.role}
                     </div>
-                  ))}
-                </div>
+                    <a
+                      href={`mailto:${o.email}`}
+                      className="mt-2 inline-flex items-center gap-2 text-sm text-white/70 hover:text-white transition"
+                    >
+                      <Mail className="h-4 w-4" />
+                      {o.email}
+                    </a>
+                  </div>
+                ))}
               </div>
-            </div>
+            </Card>
           </div>
         )}
 
-        {/* Program Tab */}
         {activeTab === "program" && (
           <div>
-            <h2 className="text-3xl font-bold mb-6">Conference Program</h2>
-            <div className="space-y-3">
-              {event.program.map((session) => (
-                <div
-                  key={session.id}
-                  className={`border rounded-xl p-6 ${getSessionColor(
-                    session.type
-                  )} transition-all hover:scale-[1.01]`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <span className="text-sm font-mono font-semibold">
-                          {session.time}
-                        </span>
-                        <span className="text-xs px-2 py-1 bg-white/10 rounded-full uppercase tracking-wide">
-                          {session.type}
-                        </span>
+            <SectionTitle
+              title="Conference program"
+              subtitle="Schedule overview. Organizers can later manage sessions in dashboard."
+              icon={<Clock className="h-5 w-5 text-white/85" />}
+            />
+
+            <div className="mt-6 grid gap-3">
+              {event.program.map((s) => (
+                <Card key={s.id} className="p-5">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <div className="flex items-start gap-4">
+                      <div className="min-w-[92px]">
+                        <div className="text-xs text-white/60">Time</div>
+                        <div className="font-mono font-semibold text-white/90">
+                          {s.time}
+                        </div>
                       </div>
-                      <h3 className="text-lg font-bold mb-1">
-                        {session.title}
-                      </h3>
-                      {session.speaker && (
-                        <p className="text-sm opacity-80">{session.speaker}</p>
-                      )}
+
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span
+                            className={cx(
+                              "px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide border",
+                              sessionTypePill(s.type)
+                            )}
+                          >
+                            {sessionTypeLabel(s.type)}
+                          </span>
+                          {s.speaker ? (
+                            <span className="text-xs text-white/60">
+                              Speaker:{" "}
+                              <span className="text-white/85 font-semibold">
+                                {s.speaker}
+                              </span>
+                            </span>
+                          ) : null}
+                        </div>
+
+                        <div className="mt-2 text-lg font-extrabold text-white/92">
+                          {s.title}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 justify-end">
+                      <GhostButton onClick={() => alert("Later: session details")}>
+                        Details <ChevronRight className="h-4 w-4" />
+                      </GhostButton>
                     </div>
                   </div>
-                </div>
+                </Card>
               ))}
             </div>
           </div>
         )}
 
-        {/* Speakers Tab */}
         {activeTab === "speakers" && (
           <div>
-            <h2 className="text-3xl font-bold mb-6">Featured Speakers</h2>
-            <div className="grid md:grid-cols-2 gap-6">
-              {event.speakers.map((speaker) => (
-                <div
-                  key={speaker.id}
-                  className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6 hover:border-blue-500/50 transition-all"
+            <SectionTitle
+              title="Featured speakers"
+              subtitle="Profiles can be expanded later (bio, socials, talk title)."
+              icon={<UserRound className="h-5 w-5 text-white/85" />}
+            />
+
+            <div className="mt-6 grid md:grid-cols-2 gap-4">
+              {event.speakers.map((sp) => (
+                <Card
+                  key={sp.id}
+                  className="p-6 hover:bg-white/10 transition"
                 >
                   <div className="flex items-start gap-4">
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-xl font-bold flex-shrink-0">
-                      {speaker.avatar}
+                    <div className="h-14 w-14 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center font-extrabold">
+                      {sp.avatar}
                     </div>
+
                     <div className="flex-1">
-                      <h3 className="text-xl font-bold mb-1">{speaker.name}</h3>
-                      <p className="text-blue-400 text-sm mb-2">
-                        {speaker.title}
-                      </p>
-                      <p className="text-slate-400 text-sm">
-                        {speaker.organization}
-                      </p>
+                      <div className="text-xl font-extrabold">{sp.name}</div>
+                      <div className="mt-1 text-sm text-blue-200/90 font-semibold">
+                        {sp.title}
+                      </div>
+                      <div className="mt-1 text-sm text-white/65">
+                        {sp.organization}
+                      </div>
+
+                      <div className="mt-4 flex gap-2">
+                        <GhostButton onClick={() => alert("Later: speaker page")}>
+                          View profile <ChevronRight className="h-4 w-4" />
+                        </GhostButton>
+                      </div>
                     </div>
                   </div>
-                </div>
+                </Card>
               ))}
             </div>
           </div>
         )}
-      </div>
+      </main>
 
-      {/* Registration Modal */}
+      {/* Register Modal */}
       {showRegisterModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-8 max-w-md w-full">
-            {registrationStep === "form" && (
-              <>
-                <h3 className="text-2xl font-bold mb-4">Register for Event</h3>
-
-                <div className="space-y-4">
-                  <input
-                    placeholder="Full Name"
-                    className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg"
-                  />
-                  <input
-                    placeholder="Email Address"
-                    className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg"
-                  />
-                  <input
-                    placeholder="Organization"
-                    className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg"
-                  />
-                </div>
-
-                <div className="mt-4">
-                  <h4 className="font-semibold mb-2">Ticket Type</h4>
-                  <select
-                    value={ticketType}
-                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                      setTicketType(e.target.value as "regular" | "student")
-                    }
-                    className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg"
-                  >
-                    <option value="regular">Regular — 1500DA</option>
-                    <option value="student">Student — 800DA</option>
-                  </select>
-                </div>
-
-                <div className="flex gap-3 mt-6">
-                  <button
-                    onClick={() => setShowRegisterModal(false)}
-                    className="flex-1 bg-slate-700 py-3 rounded-lg"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={() => setRegistrationStep("payment")}
-                    className="flex-1 bg-blue-600 py-3 rounded-lg font-semibold"
-                  >
-                    Continue
-                  </button>
-                </div>
-              </>
-            )}
-
-            {registrationStep === "payment" && (
-              <>
-                <h3 className="text-2xl font-bold mb-4">Payment</h3>
-
-                <div className="space-y-3">
-                  {["Credit Card", "Bank Transfer", "Pay on Site"].map(
-                    (method) => (
-                      <label
-                        key={method}
-                        className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer ${
-                          paymentMethod === method
-                            ? "border-blue-500 bg-blue-500/10"
-                            : "border-slate-700"
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          name="payment"
-                          checked={paymentMethod === method}
-                          onChange={() => setPaymentMethod(method)}
-                        />
-                        {method}
-                      </label>
-                    )
-                  )}
-                </div>
-
-                <div className="flex gap-3 mt-6">
-                  <button
-                    onClick={() => setRegistrationStep("form")}
-                    className="flex-1 bg-slate-700 py-3 rounded-lg"
-                  >
-                    Back
-                  </button>
-                  <button
-                    onClick={() => setRegistrationStep("success")}
-                    disabled={!paymentMethod}
-                    className="flex-1 bg-blue-600 py-3 rounded-lg font-semibold disabled:opacity-50"
-                  >
-                    Confirm
-                  </button>
-                </div>
-              </>
-            )}
-
-            {registrationStep === "success" && (
-              <>
-                <h3 className="text-2xl font-bold mb-4">
-                  ✅ Registration Complete
-                </h3>
-                <p className="text-slate-300 mb-6">
-                  You are successfully registered for{" "}
-                  <strong>{event.title}</strong>.
-                </p>
-                <button
+        <Modal
+          title="Register for this event"
+          subtitle="Complete your registration in two steps: form → payment."
+          onClose={() => {
+            setShowRegisterModal(false);
+            setRegistrationStep("form");
+            setPaymentMethod(null);
+          }}
+          footer={
+            registrationStep === "form" ? (
+              <div className="flex gap-3">
+                <SecondaryButton
                   onClick={() => {
                     setShowRegisterModal(false);
                     setRegistrationStep("form");
+                    setPaymentMethod(null);
                   }}
-                  className="w-full bg-blue-600 py-3 rounded-lg font-semibold"
+                >
+                  Cancel
+                </SecondaryButton>
+                <PrimaryButton
+                  onClick={() => setRegistrationStep("payment")}
+                  iconRight={<ChevronRight className="h-4 w-4" />}
+                >
+                  Continue
+                </PrimaryButton>
+              </div>
+            ) : registrationStep === "payment" ? (
+              <div className="flex gap-3">
+                <SecondaryButton
+                  onClick={() => {
+                    setRegistrationStep("form");
+                    setPaymentMethod(null);
+                  }}
+                >
+                  Back
+                </SecondaryButton>
+                <PrimaryButton
+                  disabled={!paymentMethod}
+                  onClick={() => setRegistrationStep("success")}
+                  iconRight={<BadgeCheck className="h-4 w-4" />}
+                >
+                  Confirm
+                </PrimaryButton>
+              </div>
+            ) : (
+              <div className="flex gap-3">
+                <PrimaryButton
+                  onClick={() => {
+                    setShowRegisterModal(false);
+                    setRegistrationStep("form");
+                    setPaymentMethod(null);
+                  }}
                 >
                   Close
-                </button>
-              </>
-            )}
-          </div>
-        </div>
+                </PrimaryButton>
+              </div>
+            )
+          }
+        >
+          {registrationStep === "form" && (
+            <div className="space-y-4">
+              <div className="grid md:grid-cols-2 gap-3">
+                <Input label="Full name" placeholder="Your full name" />
+                <Input label="Email" placeholder="name@example.com" type="email" />
+              </div>
+              <Input label="Organization" placeholder="University / Hospital / Lab" />
+              <div className="grid md:grid-cols-2 gap-3">
+                <Input label="Phone" placeholder="+213 ..." />
+                <Input label="Country" placeholder="Algeria" />
+              </div>
+
+              <div className="mt-2">
+                <div className="text-sm font-extrabold mb-2">Ticket type</div>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <SelectableCard
+                    active={ticketType === "regular"}
+                    title="Regular"
+                    subtitle="1500 DA"
+                    icon={<UserRound className="h-5 w-5 text-white/85" />}
+                    onClick={() => setTicketType("regular")}
+                  />
+                  <SelectableCard
+                    active={ticketType === "student"}
+                    title="Student"
+                    subtitle="800 DA"
+                    icon={<GraduationCap className="h-5 w-5 text-white/85" />}
+                    onClick={() => setTicketType("student")}
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-white/5 border border-white/10 p-3 text-xs text-white/70">
+                Your information is used only for registration purposes (demo text).
+              </div>
+            </div>
+          )}
+
+          {registrationStep === "payment" && (
+            <div className="space-y-4">
+              <div className="rounded-xl bg-white/5 border border-white/10 p-4">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-white/70">Selected ticket</span>
+                  <span className="font-semibold text-white/90">
+                    {ticketType === "regular" ? "Regular (1500 DA)" : "Student (800 DA)"}
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <div className="text-sm font-extrabold mb-2">Payment method</div>
+                <div className="grid gap-3">
+                  <PaymentChoice
+                    active={paymentMethod === "CARD"}
+                    title="Card payment"
+                    subtitle="Demo - simulate payment"
+                    icon={<CreditCard className="h-5 w-5 text-white/85" />}
+                    onClick={() => setPaymentMethod("CARD")}
+                  />
+                  <PaymentChoice
+                    active={paymentMethod === "TRANSFER"}
+                    title="Bank transfer"
+                    subtitle="Demo - upload receipt later"
+                    icon={<Landmark className="h-5 w-5 text-white/85" />}
+                    onClick={() => setPaymentMethod("TRANSFER")}
+                  />
+                  <PaymentChoice
+                    active={paymentMethod === "ONSITE"}
+                    title="Pay on site"
+                    subtitle="Pay at registration desk"
+                    icon={<WalletCards className="h-5 w-5 text-white/85" />}
+                    onClick={() => setPaymentMethod("ONSITE")}
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-white/5 border border-white/10 p-3 text-xs text-white/70">
+                In a real system, the backend confirms payment status and generates an invoice/receipt.
+              </div>
+            </div>
+          )}
+
+          {registrationStep === "success" && (
+            <div className="space-y-4">
+              <div className="rounded-2xl bg-emerald-500/10 border border-emerald-400/20 p-5">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-emerald-400/10 border border-emerald-400/20 flex items-center justify-center">
+                    <BadgeCheck className="h-5 w-5 text-emerald-200" />
+                  </div>
+                  <div>
+                    <div className="text-lg font-extrabold text-emerald-100">
+                      Registration complete
+                    </div>
+                    <div className="text-sm text-emerald-200/80">
+                      You are registered for this event.
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-white/5 border border-white/10 p-4 text-sm text-white/75">
+                Next steps: you can view your registration in your profile (later),
+                and download your badge/attestation after attendance (later).
+              </div>
+            </div>
+          )}
+        </Modal>
       )}
 
-      {/* Submit Communication Modal */}
+      {/* Submit Modal */}
       {showSubmitModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-8 max-w-md w-full">
-            <h3 className="text-2xl font-bold mb-4">
-              Submit Your Communication
-            </h3>
-            <p className="text-slate-400 mb-6">
-              Submit your abstract for consideration. Deadline:{" "}
-              {event.cfpDeadline}
-            </p>
-            <div className="space-y-4">
-              <input
-                type="text"
-                placeholder="Paper Title"
-                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:border-blue-500"
-              />
-              <textarea
-                placeholder="Abstract (max 300 words)"
-                rows={4}
-                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:border-blue-500 resize-none"
-              />
-              <input
-                type="text"
-                placeholder="Keywords (comma-separated)"
-                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:border-blue-500"
+        <Modal
+          title="Submit a communication"
+          subtitle={`Deadline: ${event.cfpDeadline}`}
+          onClose={() => setShowSubmitModal(false)}
+          footer={
+            <div className="flex gap-3">
+              <SecondaryButton onClick={() => setShowSubmitModal(false)}>
+                Cancel
+              </SecondaryButton>
+              <PrimaryButton
+                onClick={() => {
+                  alert("Later: submit to API");
+                  setShowSubmitModal(false);
+                }}
+                iconRight={<FileText className="h-4 w-4" />}
+              >
+                Submit
+              </PrimaryButton>
+            </div>
+          }
+          wide
+        >
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="md:col-span-2">
+              <Input label="Paper title" placeholder="Your paper title" />
+            </div>
+            <div className="md:col-span-2">
+              <TextArea
+                label="Abstract"
+                placeholder="Write your abstract (max 300 words)"
+                rows={6}
               />
             </div>
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => setShowSubmitModal(false)}
-                className="flex-1 px-6 py-3 bg-slate-700 hover:bg-slate-600 rounded-lg font-semibold transition-colors"
-              >
-                Cancel
-              </button>
-              <button className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition-colors">
-                Submit Paper
-              </button>
+            <div className="md:col-span-2">
+              <Input label="Keywords" placeholder="AI, ML, NLP, ..." />
+            </div>
+
+            <div className="md:col-span-2 rounded-xl bg-white/5 border border-white/10 p-3 text-xs text-white/70">
+              Tip: In DAW2 you can explain that the organizer later assigns submissions to committee members and records decisions.
             </div>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );
 };
 
 export default EventDetailsPage;
+
+/* -------------------- Inputs -------------------- */
+function Input({
+  label,
+  placeholder,
+  type = "text",
+}: {
+  label: string;
+  placeholder?: string;
+  type?: string;
+}) {
+  return (
+    <label className="block">
+      <div className="text-xs text-white/70 font-semibold mb-2">{label}</div>
+      <input
+        type={type}
+        placeholder={placeholder}
+        className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/35 outline-none focus:ring-2 focus:ring-white/20 focus:border-white/20 transition"
+      />
+    </label>
+  );
+}
+
+function TextArea({
+  label,
+  placeholder,
+  rows = 5,
+}: {
+  label: string;
+  placeholder?: string;
+  rows?: number;
+}) {
+  return (
+    <label className="block">
+      <div className="text-xs text-white/70 font-semibold mb-2">{label}</div>
+      <textarea
+        rows={rows}
+        placeholder={placeholder}
+        className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/35 outline-none focus:ring-2 focus:ring-white/20 focus:border-white/20 transition resize-none"
+      />
+    </label>
+  );
+}
+
+/* -------------------- Select Cards -------------------- */
+function SelectableCard({
+  active,
+  title,
+  subtitle,
+  icon,
+  onClick,
+}: {
+  active: boolean;
+  title: string;
+  subtitle: string;
+  icon: React.ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cx(
+        "text-left rounded-2xl p-4 border transition w-full",
+        active
+          ? "bg-white/12 border-white/25"
+          : "bg-white/5 border-white/10 hover:bg-white/8 hover:border-white/15"
+      )}
+    >
+      <div className="flex items-start gap-3">
+        <div className="h-10 w-10 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center">
+          {icon}
+        </div>
+        <div className="flex-1">
+          <div className="font-extrabold text-white/90">{title}</div>
+          <div className="text-sm text-white/65">{subtitle}</div>
+        </div>
+        {active ? (
+          <BadgeCheck className="h-5 w-5 text-white/80" />
+        ) : null}
+      </div>
+    </button>
+  );
+}
+
+function PaymentChoice({
+  active,
+  title,
+  subtitle,
+  icon,
+  onClick,
+}: {
+  active: boolean;
+  title: string;
+  subtitle: string;
+  icon: React.ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cx(
+        "text-left rounded-2xl p-4 border transition w-full",
+        active
+          ? "bg-white/12 border-white/25"
+          : "bg-white/5 border-white/10 hover:bg-white/8 hover:border-white/15"
+      )}
+    >
+      <div className="flex items-start gap-3">
+        <div className="h-10 w-10 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center">
+          {icon}
+        </div>
+        <div className="flex-1">
+          <div className="font-extrabold text-white/90">{title}</div>
+          <div className="text-sm text-white/65">{subtitle}</div>
+        </div>
+        {active ? (
+          <BadgeCheck className="h-5 w-5 text-white/80" />
+        ) : null}
+      </div>
+    </button>
+  );
+}

@@ -9,18 +9,32 @@ export default function Login() {
   const [errorMessage, setErrorMessage] = useState("");
 
   const login = () => {
-    if (!email || !password) {
-      setErrorMessage("Please enter both email and password.");
-      return;
-    }
+  if (!email || !password) {
+    setErrorMessage("Please enter both email and password.");
+    return;
+  }
 
-    if (email === "user@gmail.com" && password === "123456") {
-      alert("Login successful!");
-      setErrorMessage("");
-    } else {
-      setErrorMessage("Invalid email or password.");
-    }
-  };
+  // 🔒 MOCK AUTH CHECK
+  if (email === "user@gmail.com" && password === "123456") {
+    // ✅ SAVE USER
+    localStorage.setItem(
+      "user",
+      JSON.stringify({
+        name: "Hamza",
+        email,
+        role: "ORGANIZER", // or SUPER_ADMIN / PARTICIPANT
+      })
+    );
+
+    setErrorMessage("");
+
+    // ✅ REDIRECT
+    window.location.href = "/";
+  } else {
+    setErrorMessage("Invalid email or password.");
+  }
+};
+
 
   return (
     <div className="min-h-screen w-full bg-[linear-gradient(110deg,#2a1f5d_0%,#1f3fa3_40%,#2f6df6_70%,#9aa7ff_100%)] text-white flex flex-col md:flex-row">
