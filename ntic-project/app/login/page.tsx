@@ -2,38 +2,45 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { apiFetch } from "@/lib/api";
 export default function Login() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-
-  const login = () => {
-  if (!email || !password) {
-    setErrorMessage("Please enter both email and password.");
-    return;
-  }
-
-  // 🔒 MOCK AUTH CHECK
-  if (email === "user@gmail.com" && password === "123456") {
-    // ✅ SAVE USER
-    localStorage.setItem(
-      "user",
-      JSON.stringify({
-        name: "Hamza",
-        email,
-        role: "ORGANIZER", // or SUPER_ADMIN / PARTICIPANT
-      })
-    );
-
+  const login = async () => {
     setErrorMessage("");
+    if (!email || !password) {
+      setErrorMessage("Please enter both email and password.");
+      return;
+    }
 
-    // ✅ REDIRECT
-    window.location.href = "/";
-  } else {
-    setErrorMessage("Invalid email or password.");
-  }
-};
+    try {
+      await apiFetch("/sanctum/csrf-cookie");
+
+      const result = await apiFetch("/api/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (result?.token) {
+        window.localStorage.setItem("auth_token", result.token);
+      }
+      if (result?.user) {
+        window.localStorage.setItem("user", JSON.stringify(result.user));
+      }
+
+      router.push("/");
+    } catch (err: any) {
+      const message =
+        err?.data?.message ||
+        err?.message ||
+        "Invalid email or password.";
+      setErrorMessage(message);
+    }
+  };
 
 
   return (
@@ -133,3 +140,4 @@ export default function Login() {
     </div>
   );
 }
+
